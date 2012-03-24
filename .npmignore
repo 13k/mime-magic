@@ -1,5 +1,6 @@
 .project
+.lock-wscript
 .settings/
-src/
-bin/file
-bin/.libs/
+build/
+node_modules/
+vendor/compiled/*

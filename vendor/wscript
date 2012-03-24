@@ -1,0 +1,89 @@
+# vim: ft=python sw=2 sts=2 ts=2
+
+import errno
+import os
+import sys
+
+import Utils
+from Logs import debug, warn
+
+def configure(conf):
+  env = conf.env
+
+  env.LIBMAGIC_VERSION = "5.11"
+  env.LIBMAGIC_PACKAGE = "src/file-%s.tar.gz" % env.LIBMAGIC_VERSION
+  env.LIBMAGIC_PREFIX = "install"
+  env.LIBMAGIC_BUILDDIR = "file-%s" % env.LIBMAGIC_VERSION
+
+  env.LIBPATH_MAGIC = os.path.join(env.variant(), 'vendor', env.LIBMAGIC_PREFIX, "lib")
+  env.CPPPATH_MAGIC = os.path.join(env.variant(), 'vendor', env.LIBMAGIC_PREFIX, "include")
+  env.RPATH_MAGIC = os.path.abspath(os.path.join(conf.curdir, "../build", env.LIBPATH_MAGIC))
+  env.LIB_MAGIC = 'magic'
+
+  if 'win' in sys.platform:
+    env.LIBMAGIC_MAGIC_FILE = os.path.join(conf.curdir, 'win32', 'magic.mgc')
+    env.LIBMAGIC_FILE_BIN = os.path.join(conf.curdir, 'win32', 'file.exe')
+  else:
+    env.LIBMAGIC_FILE_BIN_TARGET = os.path.join(env.LIBMAGIC_PREFIX, "bin/file")
+    env.LIBMAGIC_MAGIC_FILE_TARGET = os.path.join(env.LIBMAGIC_PREFIX, "share/misc/magic.mgc")
+    env.LIBMAGIC_MAGIC_FILE = os.path.join(conf.curdir, 'compiled', 'magic.mgc')
+    env.LIBMAGIC_FILE_BIN = os.path.join(conf.curdir, 'compiled', 'file')
+
+def distclean(ctx):
+  libmagic_magic_file = os.path.join(ctx.curdir, 'compiled', 'magic.mgc')
+  libmagic_file_bin = os.path.join(ctx.curdir, 'compiled', 'file')
+
+  if 'win' in sys.platform:
+    return
+
+  for target in [libmagic_file_bin, libmagic_magic_file]:
+    try:
+      os.unlink(target)
+    except OSError, e:
+      if e.errno != errno.ENOENT:
+        warn("file %r cannot be removed", target)
+
+def build(bld):
+  bld.add_group('libmagic')
+
+  def build_libmagic(task):
+    env = task.env
+    pkg_node = task.inputs[0]
+    bin_node, mgc_node = task.outputs
+    pkg = pkg_node.srcpath(env)
+    debug("build_libmagic: package=%s", pkg)
+    # extract package
+    r = Utils.exec_command(['tar', '--extract', '-z', '-f', pkg])
+    if r != 0:
+      return r
+    # run configure script
+    prefix = bin_node.parent.parent.abspath(env)
+    debug("build_libmagic: prefix=%s", prefix)
+    r = Utils.exec_command(['sh', 'configure', "--prefix=%s" % prefix], cwd=env.LIBMAGIC_BUILDDIR)
+    if r != 0:
+      return r
+    # run make install
+    r = Utils.exec_command(['make', 'install'], cwd=env.LIBMAGIC_BUILDDIR)
+    if r != 0:
+      return r
+    # copy important files
+    debug("build_libmagic: copy %s -> %s", mgc_node.abspath(env), env.LIBMAGIC_MAGIC_FILE)
+    r = Utils.exec_command(['cp', mgc_node.abspath(env), env.LIBMAGIC_MAGIC_FILE])
+    if r != 0:
+      return r
+    debug("build_libmagic: copy %s -> %s", bin_node.abspath(env), env.LIBMAGIC_FILE_BIN)
+    r = Utils.exec_command(['cp', bin_node.abspath(env), env.LIBMAGIC_FILE_BIN])
+    if r != 0:
+      return r
+
+    return 0
+
+  env = bld.env
+  targets = [env.LIBMAGIC_FILE_BIN_TARGET, env.LIBMAGIC_MAGIC_FILE_TARGET]
+  for target in targets:
+    bld.path.exclusive_build_node(target)
+
+  bld(rule = build_libmagic,
+      source = env.LIBMAGIC_PACKAGE,
+      target = targets,
+      name = 'libmagic')
