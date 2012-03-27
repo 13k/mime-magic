@@ -28,9 +28,9 @@
   "keywords": ["mime", "magic", "libmagic", "file", "wrapper", "windows", "win32"],
   "scripts": {
     "preinstall": "node-waf configure build",
-    "test": "expresso test/*.js"
+    "test": "zap"
   },
   "devDependencies" : {
-    "expresso": "~0.9.2"
+    "zap": "~0.2.4"
   }
 }

@@ -6,7 +6,7 @@
 
 using namespace v8;
 
-Handle<Value> lookup(const Arguments& args) {
+Handle<Value> lookupSync(const Arguments& args) {
   HandleScope scope;
   magic_t cookie;
   const char *mimetype;
@@ -49,8 +49,8 @@ Handle<Value> lookup(const Arguments& args) {
 }
 
 static void init(Handle<Object> target) {
-  target->Set(String::NewSymbol("lookup"),
-      FunctionTemplate::New(lookup)->GetFunction());
+  target->Set(String::NewSymbol("lookupSync"),
+      FunctionTemplate::New(lookupSync)->GetFunction());
 }
 
 NODE_MODULE(mime_magic, init)
