@@ -4,6 +4,8 @@
 # before too late.
 
 import os
+
+import Scripting
 from Utils import ordered_dict
 from Configure import conf
 
@@ -72,4 +74,5 @@ def build(bld):
       target = 'mime_magic')
 
 def distclean(ctx):
+  Scripting.distclean(ctx)
   ctx.recurse('vendor')

@@ -3,4 +3,4 @@
 .settings/
 build/
 node_modules/
-vendor/compiled/*
+vendor/compiled/

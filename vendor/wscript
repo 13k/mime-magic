@@ -2,6 +2,7 @@
 
 import errno
 import os
+import shutil
 import sys
 
 import Utils
@@ -30,18 +31,14 @@ def configure(conf):
     env.LIBMAGIC_FILE_BIN = os.path.join(conf.curdir, 'compiled', 'file')
 
 def distclean(ctx):
-  libmagic_magic_file = os.path.join(ctx.curdir, 'compiled', 'magic.mgc')
-  libmagic_file_bin = os.path.join(ctx.curdir, 'compiled', 'file')
-
   if 'win' in sys.platform:
     return
 
-  for target in [libmagic_file_bin, libmagic_magic_file]:
-    try:
-      os.unlink(target)
-    except OSError, e:
-      if e.errno != errno.ENOENT:
-        warn("file %r cannot be removed", target)
+  try:
+    shutil.rmtree(os.path.join(ctx.curdir, 'compiled'))
+  except OSError, e:
+    if e.errno != errno.ENOENT:
+      warn("file %r cannot be removed", target)
 
 def build(bld):
   bld.add_group('libmagic')
@@ -68,10 +65,12 @@ def build(bld):
       return r
     # copy important files
     debug("build_libmagic: copy %s -> %s", mgc_node.abspath(env), env.LIBMAGIC_MAGIC_FILE)
+    Utils.check_dir(os.path.dirname(env.LIBMAGIC_MAGIC_FILE))
     r = Utils.exec_command(['cp', mgc_node.abspath(env), env.LIBMAGIC_MAGIC_FILE])
     if r != 0:
       return r
     debug("build_libmagic: copy %s -> %s", bin_node.abspath(env), env.LIBMAGIC_FILE_BIN)
+    Utils.check_dir(os.path.dirname(env.LIBMAGIC_FILE_BIN))
     r = Utils.exec_command(['cp', bin_node.abspath(env), env.LIBMAGIC_FILE_BIN])
     if r != 0:
       return r
